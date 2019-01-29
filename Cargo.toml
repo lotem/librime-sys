@@ -1,0 +1,11 @@
+[package]
+name = "librime-sys"
+version = "0.1.0"
+authors = ["Chen Gong <chen.sst@gmail.com>"]
+edition = "2018"
+
+[features]
+separate-gears-lib = []
+
+[build-dependencies]
+bindgen = "0.47.0"
