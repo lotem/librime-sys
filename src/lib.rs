@@ -12,13 +12,22 @@ mod tests {
     use std::ffi::{CStr};
     use std::os::raw::{c_int};
 
+    fn round_up(x: usize, multiple: usize) -> usize {
+        let remainder = x % multiple;
+        match remainder {
+            0 => x,
+            _ => x + multiple - remainder,
+        }
+    }
+
     #[test]
     fn test_rime_api() {
         unsafe {
             let rime_api = rime_get_api();
-            assert!(
-                std::mem::size_of::<RimeApi>() - ((*rime_api).data_size as usize)
-                    < std::mem::align_of::<RimeApi>());
+            assert_eq!(
+                std::mem::size_of::<RimeApi>(),
+                round_up((*rime_api).data_size as usize,
+                         std::mem::align_of::<RimeApi>()));
         }
     }
 
