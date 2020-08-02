@@ -38,7 +38,7 @@ mod tests {
 
             let setup = (*rime_api).setup;
             assert!(setup.is_some());
-            let mut test_traits : RimeTraits = std::mem::uninitialized();
+            let mut test_traits : RimeTraits = std::mem::zeroed();
             test_traits.data_size = std::mem::size_of::<RimeTraits>() as c_int;
             test_traits.shared_data_dir = CStr::from_bytes_with_nul(b".\0").unwrap().as_ptr();
             test_traits.user_data_dir = CStr::from_bytes_with_nul(b".\0").unwrap().as_ptr();
