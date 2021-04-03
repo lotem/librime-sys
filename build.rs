@@ -10,7 +10,6 @@ fn main() {
     }
 
     let bindings = bindgen::Builder::default()
-        .blacklist_type("max_align_t")  // https://github.com/rust-lang/rust-bindgen/issues/550
         .header("wrapper.h")
         .generate()
         .expect("Unable to generate bindings");
