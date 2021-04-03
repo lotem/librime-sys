@@ -8,4 +8,4 @@ edition = "2018"
 separate-gears-lib = []
 
 [build-dependencies]
-bindgen = "0.47.0"
+bindgen = "0.57.0"
