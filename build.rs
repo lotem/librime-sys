@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 fn main() {
     println!("cargo:rustc-link-lib=rime");
-    if let Ok(_) = env::var("CARGO_FEATURE_SEPARATE_GEARS_LIB") {
+    if env::var("CARGO_FEATURE_SEPARATE_GEARS_LIB").is_ok() {
         println!("cargo:rustc-link-lib=rime-gears");
     }
 
