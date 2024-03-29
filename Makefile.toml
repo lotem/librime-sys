@@ -1,0 +1,40 @@
+[tasks.pre-build]
+condition = { platforms = ["mac", "windows"], files_not_exist = ["${CARGO_MAKE_WORKING_DIRECTORY}/librime"] }
+run_task = "fetch-librime-src"
+
+[tasks.fetch-librime-src]
+command = "git"
+args = ["clone", "https://github.com/rime/librime.git", "--recursive"]
+
+[tasks.build]
+dependencies = ["build-librime"]
+args = ["build", "--verbose"]
+env.LIBRIME_INCLUDE_DIR = "${CARGO_MAKE_WORKING_DIRECTORY}/librime/dist/include"
+env.LIBRIME_LIB_DIR = "${CARGO_MAKE_WORKING_DIRECTORY}/librime/dist/lib"
+
+[tasks.test]
+args = ["test", "--verbose"]
+env.DYLD_LIBRARY_PATH = { value = "librime/dist/lib", condition = { platforms = ["mac"] } }
+
+[tasks.build-librime]
+linux_alias = "empty"
+mac_alias = "build-librime-posix"
+windows_alias = "build-librime-windows"
+
+[tasks.build-librime-posix]
+dependencies = ["build-librime-deps"]
+script = 'make -C librime && make -C librime install'
+
+[tasks.build-librime-windows]
+dependencies = ["build-librime-deps"]
+script = '.\build.bat'
+
+[tasks.build-librime-deps]
+windows_alias = "build-librime-deps-windows"
+alias = "build-librime-deps-posix"
+
+[tasks.build-librime-deps-posix]
+script = 'make -C librime deps'
+
+[tasks.build-librime-deps-windows]
+script = '.\build.bat deps'
