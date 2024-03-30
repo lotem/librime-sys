@@ -4,6 +4,41 @@
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
+#[macro_export]
+macro_rules! rime_call {
+    ( $api_struct:expr, $api_fn:ident $(, $arg:expr)* ) => {
+        unsafe {
+            let api_fn = $api_struct.$api_fn.expect(
+                format!("missing api function: {}.{}",
+                        stringify!($api_struct),
+                        stringify!($api_fn)
+                ).as_str()
+            );
+            api_fn($($arg),*)
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! rime_api_call {
+    ( $api_fn:ident $(, $arg:expr)* ) => {
+        unsafe {
+            let rime_api = rime_get_api();
+            rime_call!(*rime_api, $api_fn $(, $arg)*)
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! rime_module_call {
+    ( $module:expr => $api_type:ty, $api_fn:ident $(, $arg:expr)* ) => {
+        unsafe {
+            let module_api = rime_call!($module, get_api) as *const $api_type;
+            rime_call!(*module_api, $api_fn $(, $arg)*)
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -77,5 +112,26 @@ mod tests {
                 assert!(!levers_module.is_null());
             }
         }
+    }
+
+    #[test]
+    fn test_rime_api_call() {
+        let mut test_traits: RimeTraits = unsafe { std::mem::zeroed() };
+        rime_api_call!(initialize, &mut test_traits);
+        rime_api_call!(finalize);
+    }
+
+    #[test]
+    fn test_rime_module_call() {
+        let levers_module = rime_api_call!(
+            find_module,
+            CStr::from_bytes_with_nul(b"levers\0").unwrap().as_ptr()
+        );
+        let _custom_settings = rime_module_call!(
+            *levers_module => RimeLeversApi,
+            custom_settings_init,
+            CStr::from_bytes_with_nul(b"test\0").unwrap().as_ptr(),
+            CStr::from_bytes_with_nul(b"test\0").unwrap().as_ptr()
+        );
     }
 }
