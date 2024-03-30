@@ -7,14 +7,14 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 #[macro_export]
 macro_rules! rime_call {
     ( $api_struct:expr, $api_fn:ident $(, $arg:expr)* ) => {
-        unsafe {
+        {
             let api_fn = $api_struct.$api_fn.expect(
                 format!("missing api function: {}.{}",
                         stringify!($api_struct),
                         stringify!($api_fn)
                 ).as_str()
             );
-            api_fn($($arg),*)
+            unsafe { api_fn($($arg),*) }
         }
     };
 }
@@ -22,9 +22,9 @@ macro_rules! rime_call {
 #[macro_export]
 macro_rules! rime_api_call {
     ( $api_fn:ident $(, $arg:expr)* ) => {
-        unsafe {
-            let rime_api = rime_get_api();
-            rime_call!(*rime_api, $api_fn $(, $arg)*)
+        {
+            let rime_api = unsafe { $crate::rime_get_api() };
+            $crate::rime_call!(unsafe { *rime_api }, $api_fn $(, $arg)*)
         }
     };
 }
@@ -32,9 +32,9 @@ macro_rules! rime_api_call {
 #[macro_export]
 macro_rules! rime_module_call {
     ( $module:expr => $api_type:ty, $api_fn:ident $(, $arg:expr)* ) => {
-        unsafe {
-            let module_api = rime_call!($module, get_api) as *const $api_type;
-            rime_call!(*module_api, $api_fn $(, $arg)*)
+        {
+            let module_api = $crate::rime_call!(unsafe { *$module }, get_api) as *const $api_type;
+            $crate::rime_call!(unsafe { *module_api }, $api_fn $(, $arg)*)
         }
     };
 }
@@ -128,7 +128,7 @@ mod tests {
             CStr::from_bytes_with_nul(b"levers\0").unwrap().as_ptr()
         );
         let _custom_settings = rime_module_call!(
-            *levers_module => RimeLeversApi,
+            levers_module => RimeLeversApi,
             custom_settings_init,
             CStr::from_bytes_with_nul(b"test\0").unwrap().as_ptr(),
             CStr::from_bytes_with_nul(b"test\0").unwrap().as_ptr()
