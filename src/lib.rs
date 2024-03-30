@@ -5,6 +5,13 @@
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 #[macro_export]
+macro_rules! rime_struct_new {
+    () => {
+        unsafe { std::mem::zeroed() }
+    };
+}
+
+#[macro_export]
 macro_rules! rime_call {
     ( $api_struct:expr, $api_fn:ident $(, $arg:expr)* ) => {
         {
@@ -116,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_rime_api_call() {
-        let mut test_traits: RimeTraits = unsafe { std::mem::zeroed() };
+        let mut test_traits: RimeTraits = rime_struct_new!();
         rime_api_call!(initialize, &mut test_traits);
         rime_api_call!(finalize);
     }
