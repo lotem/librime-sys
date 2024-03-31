@@ -14,7 +14,7 @@ env.LIBRIME_LIB_DIR = "${CARGO_MAKE_WORKING_DIRECTORY}/librime/dist/lib"
 
 [tasks.test]
 args = ["test", "--verbose"]
-env.DYLD_LIBRARY_PATH = { value = "librime/dist/lib", condition = { platforms = ["mac"] } }
+env.DYLD_LIBRARY_PATH = { value = "${CARGO_MAKE_WORKING_DIRECTORY}/librime/dist/lib", condition = { platforms = ["mac"] } }
 
 [tasks.build-librime]
 linux_alias = "empty"
