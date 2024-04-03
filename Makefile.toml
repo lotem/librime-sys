@@ -1,3 +1,7 @@
+[env]
+LIBRIME_INCLUDE_DIR = "${CARGO_MAKE_WORKING_DIRECTORY}/librime/dist/include"
+LIBRIME_LIB_DIR = "${CARGO_MAKE_WORKING_DIRECTORY}/librime/dist/lib"
+
 [tasks.pre-build]
 condition = { platforms = ["mac", "windows"], files_not_exist = ["${CARGO_MAKE_WORKING_DIRECTORY}/librime"] }
 run_task = "fetch-librime-src"
@@ -9,12 +13,12 @@ args = ["clone", "https://github.com/rime/librime.git", "--recursive"]
 [tasks.build]
 dependencies = ["build-librime"]
 args = ["build", "--verbose"]
-env.LIBRIME_INCLUDE_DIR = "${CARGO_MAKE_WORKING_DIRECTORY}/librime/dist/include"
-env.LIBRIME_LIB_DIR = "${CARGO_MAKE_WORKING_DIRECTORY}/librime/dist/lib"
 
 [tasks.test]
 args = ["test", "--verbose"]
-env.DYLD_LIBRARY_PATH = { value = "${CARGO_MAKE_WORKING_DIRECTORY}/librime/dist/lib", condition = { platforms = ["mac"] } }
+env.DYLD_FALLBACK_LIBRARY_PATH = { value = "${LIBRIME_LIB_DIR}", condition = { platforms = ["mac"] } }
+env.LD_LIBRARY_PATH = { value = "${LIBRIME_LIB_DIR}", condition = { platforms = ["linux"] } }
+env.PATH = { value = "${LIBRIME_LIB_DIR}", condition = { platforms = ["windows"] } }
 
 [tasks.build-librime]
 linux_alias = "empty"
