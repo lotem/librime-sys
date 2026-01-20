@@ -5,7 +5,12 @@ authors = ["Chen Gong <chen.sst@gmail.com>"]
 edition = "2018"
 
 [features]
+dynload = []
 separate-gears-lib = []
+
+[dependencies]
+libloading = "0.8"
+lazy_static = "1.4"
 
 [build-dependencies]
 bindgen = "0.69.4"

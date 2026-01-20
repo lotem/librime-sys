@@ -14,9 +14,16 @@ fn main() {
         println!("cargo:rustc-link-lib=rime-gears");
     }
 
-    let bindings = bindgen::Builder::default()
+    let mut builder = bindgen::Builder::default()
         .header("wrapper.h")
-        .clang_arg(format!("-I{librime_include_dir}"))
+        .clang_arg(format!("-I{librime_include_dir}"));
+
+    // Only blocklist rime_get_api on Windows when dynload feature is enabled
+    if env::var("CARGO_FEATURE_DYNLOAD").is_ok() && cfg!(target_os = "windows") {
+        builder = builder.blocklist_function("rime_get_api");
+    }
+
+    let bindings = builder
         .generate()
         .expect("Unable to generate bindings");
 

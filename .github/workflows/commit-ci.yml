@@ -1,0 +1,76 @@
+name: commit-ci
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install librime and set env
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y librime-dev
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            curl -L https://github.com/rime/librime/releases/download/1.16.1/rime-de4700e-macOS-universal.tar.bz2 -o rime.tar.bz2
+            mkdir -p librime
+            tar xf rime.tar.bz2 -C librime
+            echo "LIBRIME_INCLUDE_DIR=$GITHUB_WORKSPACE/librime/dist/include" >> $GITHUB_ENV
+            echo "LIBRIME_LIB_DIR=$GITHUB_WORKSPACE/librime/dist/lib"         >> $GITHUB_ENV
+            ls -l librime/dist/include
+            ls -l librime/dist/lib
+            # set RUSTFLAGS="-C link-arg=-Wl,-rpath,@executable_path"
+            echo "RUSTFLAGS=-C link-arg=-Wl,-rpath,@executable_path" >> $GITHUB_ENV
+            cp librime/dist/lib/librime.1.16.1.dylib ./
+            cp -r librime/dist/lib/rime-plugins ./
+            ln -s librime.1.16.1.dylib librime.1.dylib
+            ln -s librime.1.dylib librime.dylib
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            curl -L https://github.com/rime/librime/releases/download/1.16.1/rime-de4700e-Windows-msvc-x64.7z -o librime.7z
+            7z x librime.7z -olibrime
+            # 变量写法注意：Windows 环境变量分隔要用 \\ 或 /
+            echo "LIBRIME_INCLUDE_DIR=$GITHUB_WORKSPACE\\librime\\dist\\include" >> $GITHUB_ENV
+            echo "LIBRIME_LIB_DIR=$GITHUB_WORKSPACE\\librime\\dist\\lib"         >> $GITHUB_ENV
+            ls -l librime/dist/include
+            ls -l librime/dist/lib
+            cp librime/dist/lib/rime.dll ./
+          fi
+
+      - name: Build
+        run: |
+          cargo build 
+          cargo build --features=dynload
+
+      - name: Test
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            cp librime/dist/lib/librime.1.16.1.dylib target/debug/deps/
+            ln -sf librime.1.16.1.dylib target/debug/deps/librime.1.dylib
+            ln -sf librime.1.dylib      target/debug/deps/librime.dylib
+          fi
+          cargo test --lib 
+          cargo test --features=dynload --lib
+
