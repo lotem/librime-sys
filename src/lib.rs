@@ -6,51 +6,67 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 #[macro_export]
 macro_rules! rime_struct_new {
-    () => {
-        unsafe { std::mem::zeroed() }
+    () => {{
+        #[allow(unused_unsafe)]
+        let mut s = unsafe { ::std::mem::zeroed() };
+        if false {
+            s
+        } else {
+            s.data_size = (::std::mem::size_of_val(&s) - ::std::mem::size_of_val(&s.data_size))
+                as ::std::ffi::c_int;
+            s
+        }
+    }};
+    ($t:ty) => {{
+        let s: $t = $crate::rime_struct_new!();
+        s
+    }};
+}
+
+#[macro_export]
+macro_rules! rime_struct {
+    ($var:ident : $t:ty) => {
+        #[allow(unused_mut)]
+        let mut $var: $t = $crate::rime_struct_new!();
     };
 }
 
 #[macro_export]
 macro_rules! rime_call {
-    ( $api_struct:expr, $api_fn:ident $(, $arg:expr)* ) => {
-        {
-            let api_fn = $api_struct.$api_fn.expect(
-                format!("missing api function: {}.{}",
-                        stringify!($api_struct),
-                        stringify!($api_fn)
-                ).as_str()
-            );
-            unsafe { api_fn($($arg),*) }
-        }
-    };
+    ( $api_struct:expr, $api_fn:ident $(, $arg:expr)* ) => {{
+        let api_fn = $api_struct.$api_fn.expect(concat!(
+            "missing api function: ",
+            stringify!($api_struct),
+            ".",
+            stringify!($api_fn)
+        ));
+        #[allow(unused_unsafe)]
+        unsafe { api_fn($($arg),*) }
+    }};
 }
 
 #[macro_export]
 macro_rules! rime_api_call {
-    ( $api_fn:ident $(, $arg:expr)* ) => {
-        {
-            let rime_api = unsafe { $crate::rime_get_api() };
-            $crate::rime_call!(unsafe { *rime_api }, $api_fn $(, $arg)*)
-        }
-    };
+    ( $api_fn:ident $(, $arg:expr)* ) => {{
+        #[allow(unused_unsafe)]
+        let rime_api = unsafe { $crate::rime_get_api() };
+        $crate::rime_call!(unsafe { *rime_api }, $api_fn $(, $arg)*)
+    }};
 }
 
 #[macro_export]
 macro_rules! rime_module_call {
-    ( $module:expr => $api_type:ty, $api_fn:ident $(, $arg:expr)* ) => {
-        {
-            let module_api = $crate::rime_call!(unsafe { *$module }, get_api) as *const $api_type;
-            $crate::rime_call!(unsafe { *module_api }, $api_fn $(, $arg)*)
-        }
-    };
+    ( $module:expr => $api_type:ty, $api_fn:ident $(, $arg:expr)* ) => {{
+        let module_api = $crate::rime_call!(unsafe { *$module }, get_api) as *const $api_type;
+        $crate::rime_call!(unsafe { *module_api }, $api_fn $(, $arg)*)
+    }};
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::ffi::CStr;
-    use std::os::raw::c_int;
+    use std::mem;
 
     fn round_up(x: usize, multiple: usize) -> usize {
         let remainder = x % multiple;
@@ -58,6 +74,19 @@ mod tests {
             0 => x,
             _ => x + multiple - remainder,
         }
+    }
+
+    #[test]
+    fn test_rime_struct_macros() {
+        let traits_a: RimeTraits = rime_struct_new!();
+        let traits_b = rime_struct_new!(RimeTraits);
+        rime_struct!(traits_c: RimeTraits);
+
+        let expected = (mem::size_of::<RimeTraits>() - mem::size_of_val(&traits_a.data_size))
+            as std::ffi::c_int;
+        assert_eq!(traits_a.data_size, expected);
+        assert_eq!(traits_b.data_size, expected);
+        assert_eq!(traits_c.data_size, expected);
     }
 
     #[test]
@@ -81,8 +110,7 @@ mod tests {
 
             let setup = (*rime_api).setup;
             assert!(setup.is_some());
-            let mut test_traits: RimeTraits = std::mem::zeroed();
-            test_traits.data_size = std::mem::size_of::<RimeTraits>() as c_int;
+            rime_struct!(test_traits: RimeTraits);
             test_traits.shared_data_dir = CStr::from_bytes_with_nul(b".\0").unwrap().as_ptr();
             test_traits.user_data_dir = CStr::from_bytes_with_nul(b".\0").unwrap().as_ptr();
             test_traits.distribution_name = CStr::from_bytes_with_nul(b"test\0").unwrap().as_ptr();
