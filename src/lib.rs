@@ -47,7 +47,8 @@ impl_rime_struct_default!(
     RimeTraits,
     RimeCommit,
     RimeContext,
-    RimeCandidatePreview,
+    // uncomment if needed; avaiable in librime>=1.18
+    // RimeCandidatePreview,
     RimeStatus,
     RimeCustomApi,
     RimeModule,
