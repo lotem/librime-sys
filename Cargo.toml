@@ -1,8 +1,12 @@
 [package]
 name = "librime-sys"
 version = "0.5.0"
-authors = ["Chen Gong <chen.sst@gmail.com>"]
 edition = "2021"
+description = "Rust FFI bindings for librime"
+repository = "https://github.com/lotem/librime-sys"
+readme = "README.md"
+keywords = ["rime", "ime", "ffi", "bindings"]
+categories = ["external-ffi-bindings", "api-bindings"]
 license = "BSD-3-Clause"
 links = "rime"
 
