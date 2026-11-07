@@ -4,23 +4,65 @@
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
+macro_rules! impl_rime_struct_default {
+    ($($t:ty),* $(,)?) => {
+        $(
+            impl Default for $t {
+                fn default() -> Self {
+                    unsafe { ::std::mem::zeroed() }
+                }
+            }
+        )*
+    };
+    (@versioned $($t:ty),* $(,)?) => {
+        $(
+            impl Default for $t {
+                fn default() -> Self {
+                    let mut s: Self = unsafe { ::std::mem::zeroed() };
+                    s.data_size = (::std::mem::size_of_val(&s)
+                        - ::std::mem::size_of_val(&s.data_size))
+                        as ::std::ffi::c_int;
+                    s
+                }
+            }
+        )*
+    };
+}
+
+impl_rime_struct_default!(
+    RimeComposition,
+    RimeCandidate,
+    RimeMenu,
+    RimeCandidateListIterator,
+    RimeConfig,
+    RimeConfigIterator,
+    RimeSchemaListItem,
+    RimeSchemaList,
+    RimeStringSlice,
+    RimeUserDictIterator,
+);
+
+impl_rime_struct_default!(
+    @versioned
+    RimeTraits,
+    RimeCommit,
+    RimeContext,
+    RimeCandidatePreview,
+    RimeStatus,
+    RimeCustomApi,
+    RimeModule,
+    RimeApi,
+    RimeLeversApi,
+);
+
 #[macro_export]
 macro_rules! rime_struct_new {
-    () => {{
-        #[allow(unused_unsafe)]
-        let mut s = unsafe { ::std::mem::zeroed() };
-        if false {
-            s
-        } else {
-            s.data_size = (::std::mem::size_of_val(&s) - ::std::mem::size_of_val(&s.data_size))
-                as ::std::ffi::c_int;
-            s
-        }
-    }};
-    ($t:ty) => {{
-        let s: $t = $crate::rime_struct_new!();
-        s
-    }};
+    () => {
+        ::std::default::Default::default()
+    };
+    ($t:ty) => {
+        <$t as ::std::default::Default>::default()
+    };
 }
 
 #[macro_export]
@@ -81,12 +123,24 @@ mod tests {
         let traits_a: RimeTraits = rime_struct_new!();
         let traits_b = rime_struct_new!(RimeTraits);
         rime_struct!(traits_c: RimeTraits);
+        let traits_d = RimeTraits::default();
 
         let expected = (mem::size_of::<RimeTraits>() - mem::size_of_val(&traits_a.data_size))
             as std::ffi::c_int;
         assert_eq!(traits_a.data_size, expected);
         assert_eq!(traits_b.data_size, expected);
         assert_eq!(traits_c.data_size, expected);
+        assert_eq!(traits_d.data_size, expected);
+
+        let config_a: RimeConfig = rime_struct_new!();
+        let config_b = rime_struct_new!(RimeConfig);
+        rime_struct!(config_c: RimeConfig);
+        let config_d = RimeConfig::default();
+
+        assert!(config_a.ptr.is_null());
+        assert!(config_b.ptr.is_null());
+        assert!(config_c.ptr.is_null());
+        assert!(config_d.ptr.is_null());
     }
 
     #[test]
