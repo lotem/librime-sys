@@ -31,6 +31,7 @@ script = 'make -C librime && make -C librime install'
 
 [tasks.build-librime-windows]
 dependencies = ["build-librime-deps"]
+cwd = "librime"
 script = '.\build.bat'
 
 [tasks.build-librime-deps]
@@ -41,4 +42,5 @@ alias = "build-librime-deps-posix"
 script = 'make -C librime deps'
 
 [tasks.build-librime-deps-windows]
+cwd = "librime"
 script = '.\build.bat deps'
