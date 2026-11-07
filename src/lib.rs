@@ -40,7 +40,7 @@ macro_rules! rime_call {
             ".",
             stringify!($api_fn)
         ));
-        #[allow(unused_unsafe)]
+        #[allow(unused_unsafe, clippy::macro_metavars_in_unsafe)]
         unsafe { api_fn($($arg),*) }
     }};
 }
@@ -57,7 +57,8 @@ macro_rules! rime_api_call {
 #[macro_export]
 macro_rules! rime_module_call {
     ( $module:expr => $api_type:ty, $api_fn:ident $(, $arg:expr)* ) => {{
-        let module_api = $crate::rime_call!(unsafe { *$module }, get_api) as *const $api_type;
+        let module = $module;
+        let module_api = $crate::rime_call!(unsafe { *module }, get_api) as *const $api_type;
         $crate::rime_call!(unsafe { *module_api }, $api_fn $(, $arg)*)
     }};
 }
@@ -65,7 +66,6 @@ macro_rules! rime_module_call {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::CStr;
     use std::mem;
 
     fn round_up(x: usize, multiple: usize) -> usize {
@@ -111,14 +111,12 @@ mod tests {
             let setup = (*rime_api).setup;
             assert!(setup.is_some());
             rime_struct!(test_traits: RimeTraits);
-            test_traits.shared_data_dir = CStr::from_bytes_with_nul(b".\0").unwrap().as_ptr();
-            test_traits.user_data_dir = CStr::from_bytes_with_nul(b".\0").unwrap().as_ptr();
-            test_traits.distribution_name = CStr::from_bytes_with_nul(b"test\0").unwrap().as_ptr();
-            test_traits.distribution_code_name =
-                CStr::from_bytes_with_nul(b"test\0").unwrap().as_ptr();
-            test_traits.distribution_version =
-                CStr::from_bytes_with_nul(b"0.1\0").unwrap().as_ptr();
-            test_traits.app_name = CStr::from_bytes_with_nul(b"test\0").unwrap().as_ptr();
+            test_traits.shared_data_dir = c".".as_ptr();
+            test_traits.user_data_dir = c".".as_ptr();
+            test_traits.distribution_name = c"test".as_ptr();
+            test_traits.distribution_code_name = c"test".as_ptr();
+            test_traits.distribution_version = c"0.1".as_ptr();
+            test_traits.app_name = c"test".as_ptr();
             test_traits.modules = std::ptr::null_mut();
             let setup = setup.unwrap();
             setup(&mut test_traits);
@@ -127,23 +125,19 @@ mod tests {
             assert!(find_module.is_some());
             let find_module = find_module.unwrap();
             {
-                let core_module =
-                    find_module(CStr::from_bytes_with_nul(b"core\0").unwrap().as_ptr());
+                let core_module = find_module(c"core".as_ptr());
                 assert!(!core_module.is_null());
             }
             {
-                let dict_module =
-                    find_module(CStr::from_bytes_with_nul(b"dict\0").unwrap().as_ptr());
+                let dict_module = find_module(c"dict".as_ptr());
                 assert!(!dict_module.is_null());
             }
             {
-                let gears_module =
-                    find_module(CStr::from_bytes_with_nul(b"gears\0").unwrap().as_ptr());
+                let gears_module = find_module(c"gears".as_ptr());
                 assert!(!gears_module.is_null());
             }
             {
-                let levers_module =
-                    find_module(CStr::from_bytes_with_nul(b"levers\0").unwrap().as_ptr());
+                let levers_module = find_module(c"levers".as_ptr());
                 assert!(!levers_module.is_null());
             }
         }
@@ -158,15 +152,12 @@ mod tests {
 
     #[test]
     fn test_rime_module_call() {
-        let levers_module = rime_api_call!(
-            find_module,
-            CStr::from_bytes_with_nul(b"levers\0").unwrap().as_ptr()
-        );
+        let levers_module = rime_api_call!(find_module, c"levers".as_ptr());
         let _custom_settings = rime_module_call!(
             levers_module => RimeLeversApi,
             custom_settings_init,
-            CStr::from_bytes_with_nul(b"test\0").unwrap().as_ptr(),
-            CStr::from_bytes_with_nul(b"test\0").unwrap().as_ptr()
+            c"test".as_ptr(),
+            c"test".as_ptr()
         );
     }
 }
